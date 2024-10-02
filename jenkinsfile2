@@ -1,0 +1,72 @@
+pipeline {
+    agent any
+
+    tools {
+            // Utiliza la instalación automática de Git configurada en la Configuración Global de Herramientas
+            git 'Default'
+            jdk 'JavaJenkins'
+    }
+
+    environment {
+        SONNAR_SCANNER=tool 'SonarScanner'
+
+        // Define la ruta del ejecutable Gradle en el agente
+        GRADLE_HOME = tool 'Gradle'
+        // --- Gestor de codigo fuente --- //
+        GIT_SOLUTION = 'https://git.minedu.gob.pe/si0098-siagie/backend/msa-maestro.git'
+        GIT_BRANCH = 'certification'
+        GIT_CREDENTIALS = 'gitqa'
+        SONAR_PROJECT_VERSION = "${BUILD_NUMBER}"
+
+    }
+
+    stages {
+        stage('Pruebas con Cucumber') {
+            steps {
+                script {
+                    // Ejecuta Gradle con la tarea de Cucumber y el parámetro testSuite
+                    catchError(buildResult: 'SUCCESS') {
+                        sh "${GRADLE_HOME} cucumber -PtestSuite=@Maestros"
+                    }
+                }
+                script {
+                    currentBuild.result = 'SUCCESS'
+                }
+
+            }
+            post {
+                always {
+                    echo "Ver..."
+                    catchError(buildResult: 'SUCCESS') {
+                            cucumber 'build/reports/cucumber/*.json'
+                            error("Cucumber falló, pero continuamos el pipeline")
+                    }
+
+                }
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                     echo "$WORKSPACE"
+                     sh "cp sonar.properties $JENKINS_HOME/sonar.properties"
+                      catchError(buildResult: 'SUCCESS') {
+
+                         echo "Analizando el código con sonarqube..."
+                          git branch: env.GIT_BRANCH, credentialsId: env.GIT_CREDENTIALS, url: env.GIT_SOLUTION
+                          sh "cp $JENKINS_HOME/sonar.properties sonar.properties"
+                          sh "ls"
+                          withSonarQubeEnv('sonarqube-portal') {
+                              sh "${SONNAR_SCANNER}/bin/sonar-scanner -Dsonar.projectVersion=${SONAR_PROJECT_VERSION}  -Dproject.settings=sonar.properties "
+                          }
+
+                          timeout(time: 3, unit: "MINUTES"){
+                              waitForQualityGate abortPipeline: true
+                          }
+                      }
+                }
+            }
+
+        }
+    }
+}

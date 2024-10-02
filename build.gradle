@@ -1,0 +1,55 @@
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+    //Rest Assured
+    testImplementation 'io.rest-assured:rest-assured:5.0.1'
+
+    testImplementation 'io.rest-assured:json-path:5.0.1'
+    testImplementation 'io.rest-assured:json-schema-validator:5.0.1'
+    testImplementation 'io.rest-assured:rest-assured-common:5.0.1'
+    testImplementation 'io.rest-assured:rest-assured-all:5.0.1'
+    testImplementation 'org.json:json:20220320'
+
+    //Cucumber
+    testImplementation 'io.cucumber:cucumber-java:7.3.4'
+    testImplementation 'io.cucumber:cucumber-junit:7.3.4'
+    testImplementation 'net.masterthought:cucumber-reporting:5.7.0'
+
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.12'
+    implementation 'org.bouncycastle:bcpkix-jdk15on:1.69'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+configurations {
+    cucumberRuntime {
+        extendsFrom testImplementation
+    }
+}
+// gradle cucumber -PtestSuite=@Testing
+task cucumber() {
+    dependsOn assemble, testClasses
+    doLast {
+        def testSuite = findProperty("testSuite") ?: "defaultTestSuite" // Valor predeterminado si no se proporciona en la línea de comandos
+        javaexec {
+            main = "io.cucumber.core.cli.Main"
+            classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+            //       -- reporte -------- ----- step definition- ---- features ----
+            args = ['--plugin', 'json:build/reports/cucumber/report.json','--glue', 'runner','src/test/resources','--tags', testSuite] // +[testSuite]
+        }
+    }
+}
