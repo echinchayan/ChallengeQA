@@ -1,4 +1,4 @@
-@Chellenge
+@Test
 Feature: LOGIN: Autenticación de usuarios al sistema
   Permite la autenticación de usuarios por correo y contraseña
 

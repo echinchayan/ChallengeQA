@@ -1,4 +1,4 @@
-@Chellenge
+@Test
 Feature: REGISTER: Registro de usuarios correctamente
   Permite el registro de usuarios por correo electrónico y contraseña
 
